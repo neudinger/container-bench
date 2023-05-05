@@ -1,0 +1,141 @@
+cmake_minimum_required(VERSION 3.21)
+
+set(TARGET "stencil")
+project(${TARGET} VERSION 0.1)
+set(WORKDIR ${CMAKE_CURRENT_LIST_DIR})
+message(STATUS "WORKDIR in: ${WORKDIR}")
+
+get_filename_component(LIBDIR ${PROJECT_SOURCE_DIR} PATH)
+set(LIBDIR ${LIBDIR}/libs)
+
+set(LIKWID_INCLUDE_DIR ${LIBDIR}/likwid-5.2.0)
+include_directories(${LIBDIR}/OpenCL-Headers-2021.06.30)
+include_directories(${LIBDIR}/vexcl-1.4.2)
+include_directories(${LIBDIR}/boost_1_77_0)
+include_directories(${LIBDIR}/armadillo-10.7.0/include)
+include_directories(${LIBDIR}/eigen-3.4.0)
+include_directories(${LIBDIR}/blaze-3.8)
+find_package(VexCL REQUIRED)
+find_package(OpenMP REQUIRED)
+find_package(xtensor REQUIRED)
+find_package(xtensor-io REQUIRED)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# export CC=clang
+# export CXX=clang++
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  # using Clang
+#   https://bcain-llvm.readthedocs.io/projects/polly/en/latest/UsingPollyWithClang/
+    find_package(likwid REQUIRED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=fast")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mllvm -polly -Rpass-analysis=polly")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mllvm -polly-parallel")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mllvm -polly-optimizer=pluto")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mllvm -polly-vectorizer=stripmine")
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # using GCC
+    find_package(likwid REQUIRED COMPONENTS marker OPTIONAL_COMPONENTS nvmarker)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfma")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=fast")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fipa-matrix-reorg")
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  # using Intel C++
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  # using Visual Studio C++
+endif()
+
+if(VIENNACL_WITH_OPENCL OR VIENNACL_WITH_OPENMP)
+    include_directories(${LIBDIR}/ViennaCL-1.7.1)
+endif(VIENNACL_WITH_OPENCL OR VIENNACL_WITH_OPENMP)
+
+if(ARRAY_1D)
+    add_compile_definitions(RUN_ARRAY_1D=True)
+elseif(ARRAY_2D)
+    add_compile_definitions(RUN_ARRAY_2D=True)
+elseif(NUM_CPP)
+    add_compile_definitions(RUN_NUM_CPP=True)
+elseif(BLAZE)
+    add_compile_definitions(RUN_BLAZE=True)
+elseif(VEXCL_CPU)
+    add_compile_definitions(RUN_VECTOR=True)
+    add_compile_definitions(RUN_VEXCL=True)
+    add_compile_definitions(RUN_VEXCL_CPU=True)
+elseif(VEXCL_GPU)
+    add_compile_definitions(RUN_VECTOR=True)
+    add_compile_definitions(RUN_VEXCL=True)
+    add_compile_definitions(RUN_VEXCL_GPU=True)
+elseif(VIENNACL_WITH_OPENCL)
+    add_compile_definitions(RUN_VIENNACL=True)
+    add_compile_definitions(VIENNACL_WITH_OPENCL=True)
+    add_compile_definitions(RUN_VIENNACL_WITH_OPENCL=True)
+elseif(VIENNACL_WITH_OPENMP)
+    add_compile_definitions(RUN_VIENNACL=True)
+    add_compile_definitions(VIENNACL_WITH_OPENMP=True)
+    add_compile_definitions(RUN_VIENNACL_WITH_OPENMP=True)
+elseif(STD_VECTOR_1D)
+    add_compile_definitions(RUN_VECTOR=True)
+    add_compile_definitions(RUN_STD_VECTOR_1D=True)
+elseif(STD_VECTOR_2D)
+    add_compile_definitions(RUN_VECTOR=True)
+    add_compile_definitions(RUN_STD_VECTOR_2D=True)
+elseif(EIGEN_1D)
+    add_compile_definitions(RUN_EIGEN=True)
+    add_compile_definitions(RUN_EIGEN_1D=True)
+elseif(EIGEN_2D)
+    add_compile_definitions(RUN_EIGEN=True)
+    add_compile_definitions(RUN_EIGEN_2D=True)
+elseif(EIGEN_VECTOR)
+    add_compile_definitions(RUN_EIGEN=True)
+    add_compile_definitions(RUN_EIGEN_VECTOR=True)
+elseif(ARMADILLO)
+    add_compile_definitions(RUN_ARMADILLO=True)
+elseif(XTENSOR_1D)
+    add_compile_definitions(RUN_XTENSOR=True)
+    add_compile_definitions(RUN_XTENSOR_1D=True)
+elseif(XTENSOR_2D)
+    add_compile_definitions(RUN_XTENSOR=True)
+    add_compile_definitions(RUN_XTENSOR_2D=True)
+elseif(BOOST_UBLAS)
+    add_compile_definitions(RUN_BOOST_UBLAS=True)
+endif()
+
+file(GLOB SRC
+  "${WORKDIR}/src/*.hpp"
+  "${WORKDIR}/src/*.cpp"
+)
+add_executable(${TARGET} ${SRC})
+set_property(TARGET ${TARGET} PROPERTY CXX_STANDARD 20)
+# target_compile_options(${TARGET} PRIVATE -O3 -g)
+target_compile_features(${TARGET} PRIVATE cxx_std_20)
+target_compile_options(${TARGET} PRIVATE -march=native -mtune=native)
+set_property(TARGET ${TARGET} PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
+set_property(TARGET ${TARGET} PROPERTY RULE_LAUNCH_LINK "${CMAKE_COMMAND} -E time")
+target_link_libraries(${TARGET}
+    PUBLIC
+    likwid::likwid
+    xtensor::optimize
+    xtensor::use_xsimd
+    VexCL::OpenCL
+    OpenMP::OpenMP_CXX
+    -DVIENNACL_WITH_OPENCL
+)
+
+
+unset(ARMADILLO CACHE)
+unset(ARRAY_1D CACHE)
+unset(ARRAY_2D CACHE)
+unset(BLAZE CACHE)
+unset(BOOST_UBLAS CACHE)
+unset(EIGEN_1D CACHE)
+unset(EIGEN_2D CACHE)
+unset(STD_VECTOR_1D CACHE)
+unset(STD_VECTOR_2D CACHE)
+unset(EIGEN_VECTOR CACHE)
+unset(VEXCL_CPU CACHE)
+unset(VEXCL_GPU CACHE)
+unset(VIENNACL_WITH_OPENCL CACHE)
+unset(VIENNACL_WITH_OPENMP CACHE)
+unset(XTENSOR_1D CACHE)
+unset(XTENSOR_2D CACHE)
