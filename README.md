@@ -9,7 +9,7 @@
 
 ![](https://img.shields.io/badge/Plotly-239120?style=for-the-badge&logo=plotly&logoColor=white) ![](https://img.shields.io/badge/Pandas-2C2D72?style=for-the-badge&logo=pandas&logoColor=white) ![](https://img.shields.io/badge/Numpy-777BB4?style=for-the-badge&logo=numpy&logoColor=white)
 
-![](https://llvm.org/img/LLVM-Logo-Derivative-1.png) ![](https://hpc.fau.de/files/2017/10/ll2-285x200.png) ![](https://upload.wikimedia.org/wikipedia/commons/c/cd/Boost.png) ![](https://mamba.readthedocs.io/en/latest/_static/logo.png)
+![](https://hpc.fau.de/files/2017/10/ll2-285x200.png) ![](https://upload.wikimedia.org/wikipedia/commons/c/cd/Boost.png) ![](https://mamba.readthedocs.io/en/latest/_static/logo.png)
 
 
 ## Install commands
